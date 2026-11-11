@@ -593,6 +593,34 @@ footer.site a:hover{color:var(--rep)}
 .fade-in{animation:fade .5s ease both}
 @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
 </style>
+<style>
+/* Events: editorial list first; spatial view is an optional immersive layer. */
+.events-heading{display:flex;align-items:start;justify-content:space-between;gap:1.5rem;flex-wrap:wrap}
+.events-heading .events-intro{flex:1 1 30rem;max-width:62ch}
+.events-open{margin-top:.45rem;white-space:nowrap;border:1px solid var(--rule);padding:.65rem .85rem;background:transparent;color:var(--ink);font:inherit;font-size:.85rem;cursor:pointer}
+.events-open:hover{border-color:var(--ink);background:var(--paper-2)}
+.events-list{max-width:920px;margin:0 auto 3rem}
+.events-list .ev{grid-template-columns:minmax(8rem,11rem) minmax(0,1fr);cursor:default;padding:1.2rem .5rem}
+.events-list .ev:hover{background:transparent}
+.events-list .ev h4{font-size:1.15rem}
+.events-list .ev .where{display:block;margin-top:.3rem}
+.events-list .ev p{max-width:70ch}
+.event-visual-dialog{position:fixed;inset:0;margin:0;padding:0;width:100vw;max-width:none;height:100vh;height:100dvh;max-height:none;background:var(--fig-bg);color:var(--fig-ink);border:0;overflow:hidden}
+.event-visual-dialog::backdrop{background:rgba(0,0,0,.8)}
+.event-visual-shell{height:100%;display:flex;flex-direction:column;min-height:0}
+.event-visual-top{display:flex;align-items:center;gap:1rem;justify-content:space-between;flex-wrap:wrap;padding:.7rem clamp(1rem,3vw,2.5rem);border-bottom:1px solid var(--rule)}
+.event-visual-title{font-size:1rem;font-weight:400;margin:0}
+.event-visual-close{border:1px solid var(--rule);background:transparent;color:inherit;font:inherit;padding:.4rem .8rem;cursor:pointer}
+.event-visual-close:hover{border-color:var(--fig-ink)}
+.event-visual-stage{flex:1;min-height:0;display:grid;place-items:center;position:relative;overflow:hidden;padding:0 1rem}
+.event-visual-stage .plate-body{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.event-visual-stage .plate-canvas{max-width:100%}
+.event-visual-bottom{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;padding:.7rem clamp(1rem,3vw,2.5rem);border-top:1px solid var(--rule);font-size:.78rem}
+.event-visual-bottom .plate-controls{display:flex;gap:.5rem}
+.event-visual-selection{color:var(--fig-soft);min-height:1.25em}
+.event-visual-help{font-size:.72rem;color:var(--fig-soft)}
+@media(max-width:680px){.events-list .ev{grid-template-columns:1fr;gap:.4rem}.events-open{width:100%}.event-visual-help{display:none}.event-visual-bottom{justify-content:center}.event-visual-selection{width:100%;text-align:center}}
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -2716,7 +2744,7 @@ window.Plates = (function(){
     // below the fold gives a visitor nothing to hold on to; the cube is exploratory.
     var yaw = 0, pitch = 0.12, tYaw = yaw, tPitch = pitch;
     var zoom = fitZoom(yaw, pitch), tZoom = zoom;
-    var sel = -1, hov = -1, raf = 0, running = true, spin = !REDUCE, hovering = false;
+    var sel = -1, hov = -1, raf = 0, running = true, spin = false, hovering = false;
     var drags = {}, nDrag = 0, pinch = null;
     var tip = cv.parentElement.querySelector('.plate-tip');
 
@@ -2832,31 +2860,11 @@ window.Plates = (function(){
         ctx.beginPath(); ctx.moveTo(it.A[0],it.A[1]); ctx.lineTo(it.B[0],it.B[1]); ctx.stroke();
         ctx.fillStyle = on ? COL.hi : col; ctx.globalAlpha = fog;
         ctx.beginPath(); ctx.arc(it.B[0],it.B[1], on?4:2.8, 0, 6.2832); ctx.fill();
-        if (on) label(it.d.e.place, it.B[0], it.B[1]-1, 100, '500 11px ' + FONT, COL.hi, 1, null);
+        if (on) label(it.d.e.city, it.B[0], it.B[1]-1, 100, '500 11px ' + FONT, COL.hi, 1, null);
       });
 
-      // Every place with an event, named on the map, nudged apart where the
-      // sites are closer together than the type is tall.
-      var seen = {}, labels = [];
-      for (i=items.length-1; i>=0; i--){
-        var cty = items[i].d.e.city;
-        if (seen[cty]) continue;
-        seen[cty] = 1;
-        labels.push({ x:items[i].G[0], y:items[i].G[1], t:cty });
-      }
-      // Place names only mean something when the map is not edge-on.
-      if (VIS.space > 0.10){
-        labels.forEach(function(L){
-          label(L.t, L.x, L.y, 50, '400 10px ' + FONT, COL.ink, .78, COL.ink);
-        });
-        if (pitch > 1.05){                    // looking down: name the institutions too
-          sites.forEach(function(st){
-            if (seen[st.city]) return;
-            var SP = proj(X(st.lon), Y(st.lat), 0);
-            label(st.city, SP[0], SP[1], 10, '400 9px ' + FONT, COL.soft, .6, null);
-          });
-        }
-      }
+      // Deliberately sparse: the full event list is the primary source of text.
+      // In the expanded visualization, identify only the selected/hovered point.
       flushLabels();
     }
     function tick(){ draw(); return !!(drags || spin) && !REDUCE; }
@@ -2873,7 +2881,7 @@ window.Plates = (function(){
       if (!tip) return;
       if (i<0){ tip.classList.remove('on'); return; }
       var e = ev[i].e;
-      tip.innerHTML = '<span class="t">'+e.city+'</span>'+e.title;
+      tip.textContent = e.city+' · '+new Date(e.start).getUTCFullYear();
       tip.style.left = mx+'px'; tip.style.top = my+'px'; tip.classList.add('on');
     }
     function stopSpin(){ spin = false; if (handlers.onManual) handlers.onManual(); }
@@ -6553,34 +6561,40 @@ window.Plates = (function(){
   function eventsHTML(){
     var now = new Date();
     var list = C.events.slice().sort(function(a,b){ return D(a.start)-D(b.start); });
-    return '<section class="view"><div class="view-head">' +
-      '<h2>Where and when</h2>' +
-      '<p class="lede dim">Ten meetings from 2027 to 2030: four annual meetings at the Simons Foundation, two summer schools, two workshops and two semester programs.</p>' +
-      '</div><div class="wrap"><div class="ev-split">' +
-      '<figure class="plate wide ev-figure"><div class="plate-body">' +
-      '<canvas class="plate-canvas" id="cubeCanvas"></canvas>' +
-      '<div class="plate-tip" aria-hidden="true"></div></div>' +
-      '<figcaption><span><b>Plate III</b>Longitude × latitude × time. Bar length is duration; the dotted stem drops to the map. '+
-        'Gray dots are member institutions. Coastlines and borders: Natural Earth, 1:110m.</span>' +
-      '<span class="plate-controls">' +
-        '<button class="chip" data-view="cube" aria-pressed="false">Cube</button>' +
-        '<button class="chip" data-view="map" aria-pressed="false">Map</button>' +
-        '<button class="chip" data-view="time" aria-pressed="false">Timeline</button>' +
-        '<button class="chip" data-view="spin" aria-pressed="true">Rotate</button>' +
-      '</span></figcaption></figure>' +
-      '<div class="ev-list">' + list.map(function(e,i){
+    return '<section class="view"><div class="view-head events-heading">' +
+      '<div class="events-intro"><h2>Where and when</h2>' +
+      '<p class="lede dim">Meetings, schools, workshops and thematic programs, 2027–2030.</p></div>' +
+      '<button class="events-open" type="button" id="openEventVisual" aria-haspopup="dialog">Explore space–time view ↗</button>' +
+      '</div><div class="wrap">' +
+      '<div class="events-list">' + list.map(function(e){
         var past = D(e.end||e.start) < now;
-        return '<div class="ev" data-ev="'+i+'" tabindex="0" role="button" aria-label="Show '+esc(e.title)+' on the figure">' +
-          '<span class="when">'+esc(season(e.start))+'<br>'+esc(fmtRange(e.start,e.end))+
-            (e.confirmed===false?'<br><span style="opacity:.7">dates to be confirmed</span>':'')+'</span>' +
+        return '<article class="ev">' +
+          '<div class="when">'+esc(season(e.start))+'<br>'+esc(fmtRange(e.start,e.end))+
+            (e.confirmed===false?'<br><span style="opacity:.7">dates to be confirmed</span>':'')+'</div>' +
           '<div><h4>'+esc(e.title)+(past?' <span class="tag">past</span>':'')+'</h4>' +
           '<span class="where">'+esc(e.place)+(e.leads&&e.leads.length?' · '+esc(e.leads.join(', ')):'')+'</span>' +
-          (e.blurb?'<p>'+esc(e.blurb)+'</p>':'') + '</div></div>'; }).join('') + '</div>' +
-      '</div>' +                                        // closes .ev-split
+          (e.blurb?'<p>'+esc(e.blurb)+'</p>':'') + '</div></article>'; }).join('') + '</div>' +
       '<h3 class="sec-head">Alongside the program</h3>' +
       '<div class="grid g-2">' + C.activities.map(function(a){
         return '<div class="card"><h3>'+esc(a.title)+'</h3><p class="dim" style="font-size:.95rem">'+esc(a.text)+'</p></div>'; }).join('') +
-      '</div></div></section>';
+      '</div></div>' +
+      '<dialog class="event-visual-dialog" id="eventVisual" aria-label="Events in space and time">' +
+        '<div class="event-visual-shell">' +
+          '<div class="event-visual-top"><h3 class="event-visual-title">Events · Space × Time</h3>' +
+            '<button type="button" class="event-visual-close" id="closeEventVisual" aria-label="Close space–time view">Close ×</button></div>' +
+          '<div class="event-visual-stage"><div class="plate-body">' +
+            '<canvas class="plate-canvas" id="cubeCanvas"></canvas><div class="plate-tip" aria-hidden="true"></div>' +
+          '</div></div>' +
+          '<div class="event-visual-bottom">' +
+            '<span class="event-visual-selection" id="eventVisualSelection">Select a marker to identify an event</span>' +
+            '<span class="plate-controls">' +
+              '<button class="chip" data-view="cube" aria-pressed="true">3D</button>' +
+              '<button class="chip" data-view="map" aria-pressed="false">Map</button>' +
+              '<button class="chip" data-view="time" aria-pressed="false">Time</button>' +
+              '<button class="chip" data-view="spin" aria-pressed="false">Rotate</button>' +
+            '</span><span class="event-visual-help">Drag to rotate · Ctrl/⌘ + scroll to zoom · Esc to close</span>' +
+          '</div>' +
+        '</div></dialog></section>';
   }
 
   function positionsHTML(){
@@ -6638,38 +6652,58 @@ window.Plates = (function(){
     });
   }
   function initCube(){
-    var cv = $('cubeCanvas'); if (!cv || !window.Plates) return;
-    var rows = Array.prototype.slice.call(document.querySelectorAll('.ev[data-ev]'));
+    var dialog = $('eventVisual'), openBtn = $('openEventVisual'), closeBtn = $('closeEventVisual');
+    if (!dialog || !openBtn || !window.Plates) return;
+    var cv = $('cubeCanvas'), P = null;
     var sorted = C.events.slice().sort(function(a,b){ return D(a.start)-D(b.start); });
     var seen = {}, sites = [];
     C.people.forEach(function(p){
       if (!isFinite(p.lat) || !isFinite(p.lon) || seen[p.city]) return;
       seen[p.city] = 1; sites.push({ city:p.city, lat:+p.lat, lon:+p.lon });
     });
-    var P = Plates.spacetime(cv, sorted, sites, {
-      onSelect: function(i){
-        rows.forEach(function(r,k){ r.classList.toggle('on', k===i); });
-        if (rows[i]) rows[i].scrollIntoView({ block:'nearest', behavior:'smooth' });
-      },
-      onManual: function(){          // moving it by hand leaves no preset selected
-        Array.prototype.forEach.call(document.querySelectorAll('.chip[data-view]'), function(x){
-          x.setAttribute('aria-pressed','false');
-        });
-      }
-    });
-    teardown.push(P.destroy);
-    rows.forEach(function(r,i){
-      function pick(){ rows.forEach(function(x){ x.classList.remove('on'); }); r.classList.add('on'); P.select(i); }
-      r.addEventListener('mouseenter', function(){ P.select(i); });
-      r.addEventListener('click', pick);
-      r.addEventListener('keydown', function(e){ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('.chip[data-view]'), function(b){
-      b.addEventListener('click', function(){
-        P.view(b.getAttribute('data-view'));
-        Array.prototype.forEach.call(document.querySelectorAll('.chip[data-view]'), function(x){
-          x.setAttribute('aria-pressed', x===b ? 'true' : 'false'); });
+    function setMode(button){
+      if (!P) return;
+      P.view(button.getAttribute('data-view'));
+      Array.prototype.forEach.call(dialog.querySelectorAll('.chip[data-view]'), function(x){
+        x.setAttribute('aria-pressed', x===button?'true':'false');
       });
+    }
+    function open(){
+      if (dialog.open) return;
+      dialog.showModal();
+      P = Plates.spacetime(cv, sorted, sites, {
+        onSelect: function(i){
+          var e = sorted[i];
+          if (e) $('eventVisualSelection').textContent = e.city+' · '+fmtRange(e.start,e.end)+' · '+e.title;
+        },
+        onManual: function(){
+          Array.prototype.forEach.call(dialog.querySelectorAll('.chip[data-view]'), function(x){
+            x.setAttribute('aria-pressed','false');
+          });
+        }
+      });
+      P.view('cube');
+      Array.prototype.forEach.call(dialog.querySelectorAll('.chip[data-view]'), function(x){
+        x.setAttribute('aria-pressed',x.getAttribute('data-view')==='cube'?'true':'false');
+      });
+      closeBtn.focus();
+    }
+    function close(){ dialog.close(); }
+    function onClose(){
+      if (P){ P.destroy(); P=null; }
+      $('eventVisualSelection').textContent = 'Select a marker to identify an event';
+      openBtn.focus();
+    }
+    openBtn.addEventListener('click',open);
+    closeBtn.addEventListener('click',close);
+    dialog.addEventListener('close',onClose);
+    dialog.addEventListener('click',function(e){ if(e.target===dialog)close(); });
+    Array.prototype.forEach.call(dialog.querySelectorAll('.chip[data-view]'),function(b){
+      b.addEventListener('click',function(){ setMode(b); });
+    });
+    teardown.push(function(){
+      if(P){P.destroy();P=null;}
+      if(dialog.open)dialog.close();
     });
   }
 
