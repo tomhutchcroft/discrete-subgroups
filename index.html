@@ -686,7 +686,7 @@ window.CONTENT = {
       statement: "This work is supported by the Simons Foundation and Simons Foundation International.",
       sfUrl: "https://www.simonsfoundation.org",
       sfiUrl: "https://www.sfi.org.bm",
-      logoSf: "logos/simons-foundation.svg", logoSfi: "logos/SFI_Logo_FULL_RGB.png",
+      logoSf: "https://www.simonsfoundation.org/wp-content/uploads/2026/06/logo-tile-simons-1024x682.jpg", logoSfi: "https://cdn.sfi.org.bm/wp-content/uploads/20251103145846/SFI_Logo_FULL_RGB-3.png",
     },
     mps: {
       statement: "This collaboration is part of the Simons Collaborations in Mathematics and Physical Sciences (MPS) program. This work is supported by a Simons Foundation International grant administered by the Simons Foundation.",
@@ -6740,9 +6740,9 @@ window.Plates = (function(){
       '<a href="'+esc(sfiUrl)+'" target="_blank" rel="noopener">Simons Foundation International</a>.';
     $('footLogos').innerHTML =
       '<a href="'+esc(sfUrl)+'" target="_blank" rel="noopener">' +
-        '<img src="'+esc(fu.logoSf || 'logos/simons-foundation.svg')+'" alt="Simons Foundation"></a>' +
+        '<img src="'+esc(fu.logoSf || 'https://www.simonsfoundation.org/wp-content/uploads/2026/06/logo-tile-simons-1024x682.jpg')+'" alt="Simons Foundation"></a>' +
       '<a href="'+esc(sfiUrl)+'" target="_blank" rel="noopener">' +
-        '<img src="'+esc(fu.logoSfi || 'logos/simons-foundation-international.svg')+'" alt="Simons Foundation International"></a>';
+        '<img src="'+esc(fu.logoSfi || 'https://cdn.sfi.org.bm/wp-content/uploads/20251103145846/SFI_Logo_FULL_RGB-3.png')+'" alt="Simons Foundation International"></a>';
     // Director's Toolkit 2.2: this exact wording, with links to the program page and
     // both foundations. It lives in the footer so it is on every page.
     var mps = (C.site && C.site.mps) || {};
